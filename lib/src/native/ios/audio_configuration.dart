@@ -120,4 +120,34 @@ class AppleNativeAudioManagement {
       );
     }
   }
+
+  static Future<void> setUseManualAudio(bool value) async {
+    if (WebRTC.platformIsIOS) {
+      await WebRTC.invokeMethod(
+        'setUseManualAudio',
+        <String, dynamic>{'value': value},
+      );
+    }
+  }
+
+  static Future<void> setIsAudioEnabled(bool value) async {
+    if (WebRTC.platformIsIOS) {
+      await WebRTC.invokeMethod(
+        'setIsAudioEnabled',
+        <String, dynamic>{'value': value},
+      );
+    }
+  }
+
+  static Future<void> audioSessionDidActivate() async {
+    if (WebRTC.platformIsIOS) {
+      await WebRTC.invokeMethod('audioSessionDidActivate');
+    }
+  }
+
+  static Future<void> audioSessionDidDeactivate() async {
+    if (WebRTC.platformIsIOS) {
+      await WebRTC.invokeMethod('audioSessionDidDeactivate');
+    }
+  }
 }
