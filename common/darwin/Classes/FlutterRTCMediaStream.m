@@ -707,6 +707,12 @@ typedef void (^NavigatorUserMediaSuccessCallback)(RTCMediaStream* mediaStream);
 
   for (AVAudioSessionPortDescription* port in session.currentRoute.outputs) {
     // NSLog(@"output portName: %@, type %@", port.portName,port.portType);
+    [sources addObject:@{
+      @"deviceId" : port.UID,
+      @"label" : port.portName,
+      @"groupId" : port.portType,
+      @"kind" : @"audiooutput",
+    }];
     if (session.currentRoute.outputs.count == 1 && ![port.UID isEqualToString:@"Speaker"]) {
       [sources addObject:@{
         @"deviceId" : @"Speaker",
@@ -715,12 +721,6 @@ typedef void (^NavigatorUserMediaSuccessCallback)(RTCMediaStream* mediaStream);
         @"kind" : @"audiooutput",
       }];
     }
-    [sources addObject:@{
-      @"deviceId" : port.UID,
-      @"label" : port.portName,
-      @"groupId" : port.portType,
-      @"kind" : @"audiooutput",
-    }];
   }
 #endif
 #if TARGET_OS_OSX
