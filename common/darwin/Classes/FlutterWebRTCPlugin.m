@@ -214,7 +214,8 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
 
   if (self.eventSink &&
       (routeChangeReason == AVAudioSessionRouteChangeReasonNewDeviceAvailable ||
-       routeChangeReason == AVAudioSessionRouteChangeReasonOldDeviceUnavailable)) {
+       routeChangeReason == AVAudioSessionRouteChangeReasonOldDeviceUnavailable ||
+       routeChangeReason == AVAudioSessionRouteChangeReasonCategoryChange)) {
     postEvent(self.eventSink, @{@"event" : @"onDeviceChange"});
   }
 #endif
