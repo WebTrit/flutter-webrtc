@@ -139,6 +139,29 @@
   [session unlockForConfiguration];
 }
 
++ (void)setUseManualAudio:(BOOL)value {
+  RTCAudioSession* session = [RTCAudioSession sharedInstance];
+  session.useManualAudio = value;
+}
+
++ (void)setIsAudioEnabled:(BOOL)value {
+  RTCAudioSession* session = [RTCAudioSession sharedInstance];
+  session.isAudioEnabled = value;
+}
+
++ (void)audioSessionDidActivate {
+  NSError* error = nil;
+  RTCAudioSession* session = [RTCAudioSession sharedInstance];
+  // TODO: The audio session must be passed from the 'provider:didActivateAudioSession:' method of the CXProviderDelegate.
+  [session audioSessionDidActivate: session.session];
+}
+
++ (void)audioSessionDidDeactivate {
+  NSError* error = nil;
+  RTCAudioSession* session = [RTCAudioSession sharedInstance];
+  // TODO: The audio session must be passed from the 'provider:didDeactivateAudioSession:' method of the CXProviderDelegate.
+  [session audioSessionDidDeactivate: session.session];
+}
 
 + (AVAudioSessionMode)audioSessionModeFromString:(NSString*)mode {
   if([@"default_" isEqualToString:mode]) {
