@@ -14,6 +14,8 @@
 + (void)audioSessionDidActivate;
 + (void)audioSessionDidDeactivate;
 + (void) setAppleAudioConfiguration:(NSDictionary*)configuration;
++ (void)playKeypadDTMF:(NSString *)digits;
+
 @end
 
 #endif

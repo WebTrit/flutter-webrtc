@@ -1,8 +1,31 @@
 #if TARGET_OS_IPHONE
 #import "AudioUtils.h"
 #import <AVFoundation/AVFoundation.h>
+#import "flutter_webrtc/flutter_webrtc-Swift.h"
 
+static DTMFPlayer *dtmf = nil;
+static BOOL deactivation = false;
 @implementation AudioUtils
+
+
++ (void)initialize {
+    dtmf = [[DTMFPlayer alloc] init];
+}
+
++ (void) playKeypadDTMF:(NSString *)digits {
+//    RTCAudioSession* session = [RTCAudioSession sharedInstance];
+//    [session lockForConfiguration];
+//    [dtmf playToneWithDigits:digits];
+//    [session unlockForConfiguration];
+    
+//    if (!deactivation) {
+//        [dtmf playToneWithDigits:digits];
+//    } else {
+//        NSLog(@"%s", "skip");
+//    }
+    
+    [dtmf playToneWithDigits:digits];
+}
 
 + (void)ensureAudioSessionWithRecording:(BOOL)recording {
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
@@ -127,6 +150,7 @@
 
 + (void)deactiveRtcAudioSession {
   NSError* error = nil;
+    deactivation = true;
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
   [session lockForConfiguration];
   if ([session isActive]) {
@@ -141,26 +165,38 @@
 
 + (void)setUseManualAudio:(BOOL)value {
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
+    [session lockForConfiguration];
   session.useManualAudio = value;
+    [session unlockForConfiguration];
+
 }
 
 + (void)setIsAudioEnabled:(BOOL)value {
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
+    [session lockForConfiguration];
   session.isAudioEnabled = value;
+    [session unlockForConfiguration];
 }
 
 + (void)audioSessionDidActivate {
-  NSError* error = nil;
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
   // TODO: The audio session must be passed from the 'provider:didActivateAudioSession:' method of the CXProviderDelegate.
+    [session lockForConfiguration];
   [session audioSessionDidActivate: session.session];
+    [session unlockForConfiguration];
+
 }
 
 + (void)audioSessionDidDeactivate {
-  NSError* error = nil;
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
   // TODO: The audio session must be passed from the 'provider:didDeactivateAudioSession:' method of the CXProviderDelegate.
+    [session lockForConfiguration];
   [session audioSessionDidDeactivate: session.session];
+    NSError* error = nil;
+    [[AVAudioSession sharedInstance] setMode:AVAudioSessionModeDefault error:&error];
+    [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryAmbient error:&error];
+    [session unlockForConfiguration];
+    deactivation = false;
 }
 
 + (AVAudioSessionMode)audioSessionModeFromString:(NSString*)mode {
@@ -212,7 +248,7 @@
   NSString* appleAudioMode = configuration[@"appleAudioMode"];
   
   [session lockForConfiguration];
-
+    
   if(appleAudioCategoryOptions != nil) {
     config.categoryOptions = 0;
     for(NSString* option in appleAudioCategoryOptions) {

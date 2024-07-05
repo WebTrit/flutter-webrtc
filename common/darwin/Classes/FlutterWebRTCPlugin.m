@@ -260,6 +260,7 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
+    NSLog(@"%@", call.method);
   if ([@"initialize" isEqualToString:call.method]) {
     NSDictionary* argsMap = call.arguments;
     NSDictionary* options = argsMap[@"options"];
@@ -574,7 +575,13 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
       // do not call if will be called in stopCapturer above.
       result(nil);
     }
-  } else if ([@"mediaStreamTrackSetEnable" isEqualToString:call.method]) {
+  } else if  ([@"playKeypadDTMF" isEqualToString:call.method]){
+      NSDictionary* argsMap = call.arguments;
+      NSString* digits = argsMap[@"digits"];
+      [self playKeypadDTMF:digits];
+      result(nil);
+  }
+  else if ([@"mediaStreamTrackSetEnable" isEqualToString:call.method]) {
     NSDictionary* argsMap = call.arguments;
     NSString* trackId = argsMap[@"trackId"];
     NSNumber* enabled = argsMap[@"enabled"];
@@ -1395,6 +1402,10 @@ void postEvent(FlutterEventSink _Nonnull sink, id _Nullable event) {
     [AudioUtils deactiveRtcAudioSession];
   }
 #endif
+}
+
+- (void) playKeypadDTMF :(NSString*)digits{
+    [AudioUtils playKeypadDTMF:digits];
 }
 
 - (void)mediaStreamGetTracks:(NSString*)streamId result:(FlutterResult)result {
