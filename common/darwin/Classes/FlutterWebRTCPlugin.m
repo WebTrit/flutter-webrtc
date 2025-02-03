@@ -1888,7 +1888,7 @@ static __weak id<RTCAudioDeviceModuleDelegate> gAudioDeviceModuleObserver = nil;
   if (!self.audioSessionManagementEnabled) {
     return;
   }
-  [AudioUtils ensureAudioSessionWithRecording:[self hasLocalAudioTrack]];
+  [AudioUtils ensureAudioSessionWithRecording:[self hasLocalAudioTrack] andSpeaker:_speakerOn];
 #endif
 }
 
