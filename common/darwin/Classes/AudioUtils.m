@@ -4,7 +4,7 @@
 
 @implementation AudioUtils
 
-+ (void)ensureAudioSessionWithRecording:(BOOL)recording {
++ (void)ensureAudioSessionWithRecording:(BOOL)recording andSpeaker:(BOOL)speaker {
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
   // we also need to set default WebRTC audio configuration, since it may be activated after
   // this method is called
@@ -35,6 +35,28 @@
     bool success = [session setMode:config.mode error:&error];
     if (!success)
       NSLog(@"ensureAudioSessionWithRecording[false]: setMode failed due to: %@", error);
+    [session unlockForConfiguration];
+  }
+
+  // If category is PlayAndRecord, additionaly ensure that the speaker options remains enabled after audio session changes
+  // Comon cases: 
+  //  - when speaker was enabled durning call initiation, after answering it resets to default
+  if(speaker && config.category == AVAudioSessionCategoryPlayAndRecord){
+    [session lockForConfiguration];
+    NSError* error = nil;
+    
+    
+    BOOL success = [session setCategory:config.category
+                            withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker |
+                    AVAudioSessionCategoryOptionAllowAirPlay |
+                    AVAudioSessionCategoryOptionAllowBluetoothA2DP |
+                    AVAudioSessionCategoryOptionAllowBluetooth
+                                  error:&error];
+    
+    success = [session overrideOutputAudioPort:kAudioSessionOverrideAudioRoute_Speaker
+                                              error:&error];
+    if (!success)
+      NSLog(@"ensureSpeakerphoneOn: Port override failed due to: %@", error);
     [session unlockForConfiguration];
   }
 }
