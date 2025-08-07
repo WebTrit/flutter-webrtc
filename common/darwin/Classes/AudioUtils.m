@@ -115,7 +115,7 @@
                                         AVAudioSessionCategoryOptionAllowBluetooth
                                   error:&error];
 
-    success = [session overrideOutputAudioPort:kAudioSessionProperty_OverrideAudioRoute
+    success = [session overrideOutputAudioPort:kAudioSessionOverrideAudioRoute_Speaker
                                          error:&error];
     if (!success)
       NSLog(@"setSpeakerphoneOn: Port override failed due to: %@", error);
