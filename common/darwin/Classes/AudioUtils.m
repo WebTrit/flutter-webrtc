@@ -4,7 +4,7 @@
 
 @implementation AudioUtils
 
-+ (void)ensureAudioSessionWithRecording:(BOOL)recording andSpeaker:(BOOL)speaker {
++ (void)ensureAudioSessionWithRecording:(BOOL)recording {
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
   // we also need to set default WebRTC audio configuration, since it may be activated after
   // this method is called
@@ -13,10 +13,7 @@
   if (recording && session.category != AVAudioSessionCategoryPlayAndRecord &&
       session.category != AVAudioSessionCategoryMultiRoute) {
     config.category = AVAudioSessionCategoryPlayAndRecord;
-    config.categoryOptions =
-        AVAudioSessionCategoryOptionAllowBluetooth |
-        AVAudioSessionCategoryOptionAllowBluetoothA2DP |
-        AVAudioSessionCategoryOptionAllowAirPlay;
+    config.categoryOptions = AVAudioSessionCategoryOptionAllowBluetooth;
 
     [session lockForConfiguration];
     NSError* error = nil;
@@ -35,28 +32,6 @@
     bool success = [session setMode:config.mode error:&error];
     if (!success)
       NSLog(@"ensureAudioSessionWithRecording[false]: setMode failed due to: %@", error);
-    [session unlockForConfiguration];
-  }
-
-  // If category is PlayAndRecord, additionaly ensure that the speaker options remains enabled after audio session changes
-  // Comon cases: 
-  //  - when speaker was enabled durning call initiation, after answering it resets to default
-  if(speaker && config.category == AVAudioSessionCategoryPlayAndRecord){
-    [session lockForConfiguration];
-    NSError* error = nil;
-    
-    
-    BOOL success = [session setCategory:config.category
-                            withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker |
-                    AVAudioSessionCategoryOptionAllowAirPlay |
-                    AVAudioSessionCategoryOptionAllowBluetoothA2DP |
-                    AVAudioSessionCategoryOptionAllowBluetooth
-                                  error:&error];
-    
-    success = [session overrideOutputAudioPort:kAudioSessionOverrideAudioRoute_Speaker
-                                              error:&error];
-    if (!success)
-      NSLog(@"ensureSpeakerphoneOn: Port override failed due to: %@", error);
     [session unlockForConfiguration];
   }
 }
@@ -86,35 +61,28 @@
 + (void)setSpeakerphoneOn:(BOOL)enable {
   RTCAudioSession* session = [RTCAudioSession sharedInstance];
   RTCAudioSessionConfiguration* config = [RTCAudioSessionConfiguration webRTCConfiguration];
-    
+  
   if(enable && config.category != AVAudioSessionCategoryPlayAndRecord) {
     NSLog(@"setSpeakerphoneOn: Category option 'defaultToSpeaker' is only applicable with category 'playAndRecord', ignore.");
     return;
   }
-
+  
   [session lockForConfiguration];
   NSError* error = nil;
   if (!enable) {
-    [session setMode:config.mode error:&error];
-    BOOL success = [session setCategory:config.category
-                            withOptions:AVAudioSessionCategoryOptionAllowAirPlay |
-                                        AVAudioSessionCategoryOptionAllowBluetoothA2DP |
-                                        AVAudioSessionCategoryOptionAllowBluetooth
-                                  error:&error];
-
+    config.category = AVAudioSessionCategoryPlayAndRecord;
+    config.categoryOptions = AVAudioSessionCategoryOptionAllowBluetooth;
+    BOOL success = [session setMode:config.mode error:&error];
+    success =   [session setCategory:config.category withOptions:config.categoryOptions error:&error];
     success = [session.session overrideOutputAudioPort:kAudioSessionOverrideAudioRoute_None
                                                  error:&error];
     if (!success)
       NSLog(@"setSpeakerphoneOn: Port override failed due to: %@", error);
   } else {
-    [session setMode:config.mode error:&error];
-    BOOL success = [session setCategory:config.category
-                            withOptions:AVAudioSessionCategoryOptionDefaultToSpeaker |
-                                        AVAudioSessionCategoryOptionAllowAirPlay |
-                                        AVAudioSessionCategoryOptionAllowBluetoothA2DP |
-                                        AVAudioSessionCategoryOptionAllowBluetooth
-                                  error:&error];
-
+    config.category = AVAudioSessionCategoryPlayAndRecord;
+    config.categoryOptions = AVAudioSessionCategoryOptionDefaultToSpeaker | AVAudioSessionCategoryOptionAllowBluetooth;
+    BOOL success =  [session setMode:config.mode error:&error];
+    success =   [session setCategory:config.category withOptions:config.categoryOptions error:&error];
     success = [session overrideOutputAudioPort:kAudioSessionOverrideAudioRoute_Speaker
                                          error:&error];
     if (!success)
