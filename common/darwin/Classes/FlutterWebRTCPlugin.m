@@ -1593,7 +1593,7 @@ bypassVoiceProcessing:(BOOL)bypassVoiceProcessing {
 
 - (void)ensureAudioSession {
 #if TARGET_OS_IPHONE
-  [AudioUtils ensureAudioSessionWithRecording:[self hasLocalAudioTrack] andSpeaker:_speakerOn];
+  [AudioUtils ensureAudioSessionWithRecording:[self hasLocalAudioTrack]];
 #endif
 }
 
