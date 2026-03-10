@@ -828,6 +828,7 @@ public class GetUserMediaImpl {
 
         info.cameraEventsHandler = cameraEventsHandler;
         info.videoSource = videoSource;
+        info.facingMode = facingMode;
         videoCapturer.startCapture(targetWidth, targetHeight, targetFps);
 
         cameraEventsHandler.waitForCameraOpen();
@@ -883,6 +884,7 @@ public class GetUserMediaImpl {
         sharedInfo.height = primary.height;
         sharedInfo.fps = primary.fps;
         sharedInfo.cameraName = primary.cameraName;
+        sharedInfo.facingMode = primary.facingMode;
         sharedInfo.isScreenCapture = false;
         sharedInfo.capturer = null;
         sharedInfo.videoSource = primary.videoSource;
@@ -909,6 +911,7 @@ public class GetUserMediaImpl {
         settings.putInt("width", primary.width);
         settings.putInt("height", primary.height);
         settings.putInt("frameRate", primary.fps);
+        if (primary.facingMode != null) settings.putString("facingMode", primary.facingMode);
         trackParams.putMap("settings", settings.toMap());
 
         Log.d(TAG, "buildSharedVideoTrack: created shared track " + trackId
@@ -1183,6 +1186,8 @@ public class GetUserMediaImpl {
          * Points to the trackId of the primary capturer entry. Null for primary entries.
          */
         public String primaryTrackId;
+        /** Facing mode resolved at camera open time: "user", "environment", or null if unknown. */
+        public String facingMode;
     }
 
     public VideoCapturerInfoEx getCapturerInfo(String trackId) {
