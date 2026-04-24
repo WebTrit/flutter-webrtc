@@ -7,6 +7,7 @@ import android.media.AudioManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -372,6 +373,37 @@ public class AudioSwitchManager {
             forceHandleAudioRouting = (Boolean) configuration.get("forceHandleAudioRouting");
         }
         setForceHandleAudioRouting(forceHandleAudioRouting);
+
+        List<String> preferredOutputOrder = null;
+        if (configuration.get("androidPreferredOutputOrder") instanceof List) {
+            //noinspection unchecked
+            preferredOutputOrder = (List<String>) configuration.get("androidPreferredOutputOrder");
+        }
+        setPreferredDeviceOrder(preferredOutputOrder);
+    }
+
+    /**
+     * Sets the AudioSwitch preferred device priority list from a list of device name strings.
+     * <p>
+     * Passing null or an empty list is a no-op — the current order is preserved.
+     * To restore the original default order, pass the full default list explicitly.
+     */
+    public void setPreferredDeviceOrder(@Nullable List<String> order) {
+        if (order == null || order.isEmpty()) return;
+        List<Class<? extends AudioDevice>> newList = new ArrayList<>();
+        for (String name : order) {
+            switch (name) {
+                case "bluetooth":    newList.add(AudioDevice.BluetoothHeadset.class); break;
+                case "wiredHeadset": newList.add(AudioDevice.WiredHeadset.class);     break;
+                case "speakerphone": newList.add(AudioDevice.Speakerphone.class);     break;
+                case "earpiece":     newList.add(AudioDevice.Earpiece.class);         break;
+                default: Log.w(TAG, "setPreferredDeviceOrder: unknown device name '" + name + "', skipping");
+            }
+        }
+        preferredDeviceList = newList;
+        if (audioSwitch != null) {
+            handler.post(() -> audioSwitch.setPreferredDeviceList(newList));
+        }
     }
 
     public void setManageAudioFocus(@Nullable Boolean manage) {
