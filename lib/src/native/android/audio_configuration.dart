@@ -77,6 +77,8 @@ extension AndroidAudioAttributesContentTypeEnumEx on String {
           .firstWhere((d) => d.name == toLowerCase());
 }
 
+enum AndroidAudioOutputDevice { bluetooth, wiredHeadset, earpiece, speakerphone }
+
 class AndroidAudioConfiguration {
   AndroidAudioConfiguration({
     this.manageAudioFocus,
@@ -86,6 +88,7 @@ class AndroidAudioConfiguration {
     this.androidAudioAttributesUsageType,
     this.androidAudioAttributesContentType,
     this.forceHandleAudioRouting,
+    this.preferredOutputOrder,
   });
 
   /// Controls whether audio focus should be automatically managed during
@@ -104,6 +107,22 @@ class AndroidAudioConfiguration {
   /// If this set to true, will attempt to do audio routing regardless of audio mode.
   final bool? forceHandleAudioRouting;
 
+  /// Priority-ordered list of audio output devices for Android AudioSwitch.
+  ///
+  /// AudioSwitch selects the first available device from this list on
+  /// [AudioSwitch.activate]. If null, the existing order is unchanged.
+  ///
+  /// Example for voice calls (earpiece preferred):
+  /// ```dart
+  /// preferredOutputOrder: const [
+  ///   AndroidAudioOutputDevice.bluetooth,
+  ///   AndroidAudioOutputDevice.wiredHeadset,
+  ///   AndroidAudioOutputDevice.earpiece,
+  ///   AndroidAudioOutputDevice.speakerphone,
+  /// ]
+  /// ```
+  final List<AndroidAudioOutputDevice>? preferredOutputOrder;
+
   Map<String, dynamic> toMap() => <String, dynamic>{
         if (manageAudioFocus != null) 'manageAudioFocus': manageAudioFocus!,
         if (androidAudioMode != null)
@@ -120,6 +139,9 @@ class AndroidAudioConfiguration {
               androidAudioAttributesContentType!.name,
         if (forceHandleAudioRouting != null)
           'forceHandleAudioRouting': forceHandleAudioRouting!,
+        if (preferredOutputOrder != null)
+          'androidPreferredOutputOrder':
+              preferredOutputOrder!.map((d) => d.name).toList(),
       };
 
   /// A pre-configured AndroidAudioConfiguration for media playback.

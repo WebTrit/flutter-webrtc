@@ -326,6 +326,30 @@ public class AudioSwitchManager {
             forceHandleAudioRouting = (Boolean) configuration.get("forceHandleAudioRouting");
         }
         setForceHandleAudioRouting(forceHandleAudioRouting);
+
+        List<String> preferredOutputOrder = null;
+        if (configuration.get("androidPreferredOutputOrder") instanceof List) {
+            //noinspection unchecked
+            preferredOutputOrder = (List<String>) configuration.get("androidPreferredOutputOrder");
+        }
+        setPreferredDeviceOrder(preferredOutputOrder);
+    }
+
+    public void setPreferredDeviceOrder(@Nullable List<String> order) {
+        if (order == null || order.isEmpty()) return;
+        List<Class<? extends AudioDevice>> newList = new ArrayList<>();
+        for (String name : order) {
+            switch (name) {
+                case "bluetooth":    newList.add(AudioDevice.BluetoothHeadset.class); break;
+                case "wiredHeadset": newList.add(AudioDevice.WiredHeadset.class);     break;
+                case "speakerphone": newList.add(AudioDevice.Speakerphone.class);     break;
+                case "earpiece":     newList.add(AudioDevice.Earpiece.class);         break;
+            }
+        }
+        preferredDeviceList = newList;
+        if (audioSwitch != null) {
+            handler.post(() -> Objects.requireNonNull(audioSwitch).setPreferredDeviceList(preferredDeviceList));
+        }
     }
 
     public void setManageAudioFocus(@Nullable Boolean manage) {
