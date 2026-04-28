@@ -65,6 +65,7 @@ import org.webrtc.PeerConnection.RTCConfiguration;
 import org.webrtc.PeerConnection.RtcpMuxPolicy;
 import org.webrtc.PeerConnection.SdpSemantics;
 import org.webrtc.PeerConnection.TcpCandidatePolicy;
+import org.webrtc.NetworkMonitor;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.PeerConnectionFactory.InitializationOptions;
 import org.webrtc.PeerConnectionFactory.Options;
@@ -165,6 +166,9 @@ public class MethodCallHandlerImpl implements MethodCallHandler, StateProvider {
     if (mFactory != null) {
       return;
     }
+
+    NetworkMonitor.getInstance().setNetworkChangeDetectorFactory(
+            new VpnAwareNetworkChangeDetectorFactory());
 
     PeerConnectionFactory.initialize(
             InitializationOptions.builder(context)
