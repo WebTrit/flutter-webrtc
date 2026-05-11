@@ -150,4 +150,13 @@ class AppleNativeAudioManagement {
       await WebRTC.invokeMethod('audioSessionDidDeactivate');
     }
   }
+
+  /// Restarts the AVAudioEngine ADM playout and recording after hold/unhold or
+  /// audio session interruption. Must be called instead of (or after)
+  /// audioSessionDidActivate when using RTCAudioDeviceModuleTypeAudioEngine on iOS.
+  static Future<void> restartAudio() async {
+    if (WebRTC.platformIsIOS) {
+      await WebRTC.invokeMethod('restartAudio', <String, dynamic>{});
+    }
+  }
 }
