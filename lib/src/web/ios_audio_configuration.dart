@@ -119,4 +119,6 @@ class AppleNativeAudioManagement {
   static Future<void> audioSessionDidActivate() async {}
 
   static Future<void> audioSessionDidDeactivate() async {}
+
+  static Future<void> restartAudio() async {}
 }
