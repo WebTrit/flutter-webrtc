@@ -215,8 +215,9 @@ static FlutterWebRTCPlugin *sharedSingleton;
                                              object:session];
 #endif
 
-  // Observe audio device module events.
-  _peerConnectionFactory.audioDeviceModule.observer = self;
+  // NOTE: do not set the ADM observer here - _peerConnectionFactory is created lazily in
+  // initialize:, so at this point it is nil and the assignment would be a silent no-op.
+  // The observer is set right after the factory is created.
 
   return self;
 }
@@ -326,6 +327,11 @@ static FlutterWebRTCPlugin *sharedSingleton;
                                                              encoderFactory:simulcastFactory
                                                              decoderFactory:decoderFactory
                                                       audioProcessingModule:_audioManager.audioProcessingModule];
+
+        // Observe audio device module events (device changes + AudioEngine lifecycle).
+        // Must happen after the factory exists; the property is weak, but the plugin
+        // instance is retained by the Flutter registrar for the app's lifetime.
+        _peerConnectionFactory.audioDeviceModule.observer = self;
 
 #if TARGET_OS_OSX
         // CoreAudio ADM requires explicit device initialization on macOS
@@ -2680,5 +2686,117 @@ static FlutterWebRTCPlugin *sharedSingleton;
       postEvent( self.eventSink, @{@"event" : @"onDeviceChange"});
     }
 }
+
+#if TARGET_OS_IPHONE
+// The AudioEngine ADM drives one AVAudioEngine per enable cycle and recreates it on route
+// changes, voice-processing toggles and CallKit (de)activation. Re-broadcast its lifecycle
+// as NSNotifications so other native components of the host app (e.g. sibling plugins) can
+// attach their own AVAudioNodes to the call's engine without linking WebRTC - the payload
+// types (AVAudioEngine / AVAudioNode / AVAudioFormat) are plain AVFoundation.
+// The callbacks arrive synchronously on the WebRTC worker thread; observers must not block.
+// Every protocol method is implemented because the ADM invokes them without
+// respondsToSelector checks (all methods are required).
+NSString* const FlutterWebRTCAudioEngineDidCreateNotification = @"FlutterWebRTCAudioEngineDidCreate";
+NSString* const FlutterWebRTCAudioEngineWillEnableNotification = @"FlutterWebRTCAudioEngineWillEnable";
+NSString* const FlutterWebRTCAudioEngineWillStartNotification = @"FlutterWebRTCAudioEngineWillStart";
+NSString* const FlutterWebRTCAudioEngineDidStopNotification = @"FlutterWebRTCAudioEngineDidStop";
+NSString* const FlutterWebRTCAudioEngineDidDisableNotification = @"FlutterWebRTCAudioEngineDidDisable";
+NSString* const FlutterWebRTCAudioEngineWillReleaseNotification = @"FlutterWebRTCAudioEngineWillRelease";
+NSString* const FlutterWebRTCAudioEngineDidConfigureOutputNotification =
+    @"FlutterWebRTCAudioEngineDidConfigureOutput";
+
+static void postAudioEngineNotification(NSString* name,
+                                        AVAudioEngine* engine,
+                                        NSDictionary* _Nullable userInfo) {
+  [[NSNotificationCenter defaultCenter] postNotificationName:name object:engine userInfo:userInfo];
+}
+
+static NSDictionary* audioEngineStateUserInfo(BOOL isPlayoutEnabled, BOOL isRecordingEnabled) {
+  return @{@"isPlayoutEnabled" : @(isPlayoutEnabled), @"isRecordingEnabled" : @(isRecordingEnabled)};
+}
+
+- (void)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+    didReceiveSpeechActivityEvent:(RTCSpeechActivityEvent)speechActivityEvent {
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+               didCreateEngine:(AVAudioEngine *)engine {
+  postAudioEngineNotification(FlutterWebRTCAudioEngineDidCreateNotification, engine, nil);
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+              willEnableEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  postAudioEngineNotification(FlutterWebRTCAudioEngineWillEnableNotification, engine,
+                              audioEngineStateUserInfo(isPlayoutEnabled, isRecordingEnabled));
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+               willStartEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  postAudioEngineNotification(FlutterWebRTCAudioEngineWillStartNotification, engine,
+                              audioEngineStateUserInfo(isPlayoutEnabled, isRecordingEnabled));
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+                 didStopEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  postAudioEngineNotification(FlutterWebRTCAudioEngineDidStopNotification, engine,
+                              audioEngineStateUserInfo(isPlayoutEnabled, isRecordingEnabled));
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+              didDisableEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  postAudioEngineNotification(FlutterWebRTCAudioEngineDidDisableNotification, engine,
+                              audioEngineStateUserInfo(isPlayoutEnabled, isRecordingEnabled));
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+             willReleaseEngine:(AVAudioEngine *)engine {
+  postAudioEngineNotification(FlutterWebRTCAudioEngineWillReleaseNotification, engine, nil);
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+                        engine:(AVAudioEngine *)engine
+      configureInputFromSource:(AVAudioNode *)source
+                 toDestination:(AVAudioNode *)destination
+                    withFormat:(AVAudioFormat *)format
+                       context:(NSDictionary *)context {
+  return 0;  // no input-graph changes; the ADM applies its default wiring
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+                        engine:(AVAudioEngine *)engine
+     configureOutputFromSource:(AVAudioNode *)source
+                 toDestination:(AVAudioNode *)destination
+                    withFormat:(AVAudioFormat *)format
+                       context:(NSDictionary *)context {
+  // Fires after the ADM wires its output graph (source is the engine's main mixer) with
+  // the real output format - the sanctioned point for observers to add playout nodes.
+  NSMutableDictionary* info = [NSMutableDictionary dictionaryWithCapacity:3];
+  if (source != nil) {
+    info[@"source"] = source;
+  }
+  if (destination != nil) {
+    info[@"destination"] = destination;
+  }
+  if (format != nil) {
+    info[@"format"] = format;
+  }
+  postAudioEngineNotification(FlutterWebRTCAudioEngineDidConfigureOutputNotification, engine, info);
+  return 0;
+}
+#endif
 
 @end
