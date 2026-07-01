@@ -215,8 +215,9 @@ static FlutterWebRTCPlugin *sharedSingleton;
                                              object:session];
 #endif
 
-  // Observe audio device module events.
-  _peerConnectionFactory.audioDeviceModule.observer = self;
+  // NOTE: do not set the ADM observer here - _peerConnectionFactory is created lazily in
+  // initialize:, so at this point it is nil and the assignment would be a silent no-op.
+  // The observer is set right after the factory is created.
 
   return self;
 }
@@ -326,6 +327,11 @@ static FlutterWebRTCPlugin *sharedSingleton;
                                                              encoderFactory:simulcastFactory
                                                              decoderFactory:decoderFactory
                                                       audioProcessingModule:_audioManager.audioProcessingModule];
+
+        // Observe audio device module events (device changes + AudioEngine lifecycle).
+        // Must happen after the factory exists; the property is weak, but the plugin
+        // instance is retained by the Flutter registrar for the app's lifetime.
+        _peerConnectionFactory.audioDeviceModule.observer = self;
 
 #if TARGET_OS_OSX
         // CoreAudio ADM requires explicit device initialization on macOS
@@ -2680,5 +2686,71 @@ static FlutterWebRTCPlugin *sharedSingleton;
       postEvent( self.eventSink, @{@"event" : @"onDeviceChange"});
     }
 }
+
+#if TARGET_OS_IPHONE
+// AudioEngine ADM delegate. Only device updates are handled; the engine-lifecycle methods
+// are no-op stubs, implemented because the ADM invokes every protocol method without
+// respondsToSelector checks (all methods are required) - a partial adoption would crash
+// with unrecognized selector once the observer is registered.
+- (void)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+    didReceiveSpeechActivityEvent:(RTCSpeechActivityEvent)speechActivityEvent {
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+               didCreateEngine:(AVAudioEngine *)engine {
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+              willEnableEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+               willStartEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+                 didStopEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+              didDisableEngine:(AVAudioEngine *)engine
+              isPlayoutEnabled:(BOOL)isPlayoutEnabled
+            isRecordingEnabled:(BOOL)isRecordingEnabled {
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+             willReleaseEngine:(AVAudioEngine *)engine {
+  return 0;
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+                        engine:(AVAudioEngine *)engine
+      configureInputFromSource:(AVAudioNode *)source
+                 toDestination:(AVAudioNode *)destination
+                    withFormat:(AVAudioFormat *)format
+                       context:(NSDictionary *)context {
+  return 0;  // no input-graph changes; the ADM applies its default wiring
+}
+
+- (NSInteger)audioDeviceModule:(RTCAudioDeviceModule *)audioDeviceModule
+                        engine:(AVAudioEngine *)engine
+     configureOutputFromSource:(AVAudioNode *)source
+                 toDestination:(AVAudioNode *)destination
+                    withFormat:(AVAudioFormat *)format
+                       context:(NSDictionary *)context {
+  return 0;  // no output-graph changes; the ADM applies its default wiring
+}
+#endif
 
 @end
