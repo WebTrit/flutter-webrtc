@@ -1,5 +1,30 @@
 # Flutter-WebRTC
 
+> [!IMPORTANT]
+> **This fork is no longer maintained.** The PortaOne fork of `flutter_webrtc` continues in
+> [`portaone/flutter-webrtc`](https://github.com/portaone/flutter-webrtc).
+> Pull requests opened here are not reviewed.
+
+## New location
+
+| What | Where |
+| --- | --- |
+| Fork with the PortaOne changes | [`portaone/flutter-webrtc`](https://github.com/portaone/flutter-webrtc), branch `portaone` |
+| Versions to pin | tags `po/<upstream-version>-<n>`, for example [`po/1.6.3-1`](https://github.com/portaone/flutter-webrtc/tree/po/1.6.3-1) |
+
+```yaml
+dependencies:
+  flutter_webrtc:
+    git:
+      url: https://github.com/portaone/flutter-webrtc.git
+      ref: po/1.6.3-1
+```
+
+The branches and tags of this repository stay in place, including the `main_ext*` branches, so
+an existing pin keeps resolving, but it receives no fixes. The text below is the upstream README.
+
+---
+
 [![Financial Contributors on Open Collective](https://opencollective.com/flutter-webrtc/all/badge.svg?label=financial+contributors)](https://opencollective.com/flutter-webrtc) [![pub package](https://img.shields.io/pub/v/flutter_webrtc.svg)](https://pub.dartlang.org/packages/flutter_webrtc) [![Gitter](https://badges.gitter.im/flutter-webrtc/Lobby.svg)](https://gitter.im/flutter-webrtc/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge) [![slack](https://img.shields.io/badge/join-us%20on%20slack-gray.svg?longCache=true&logo=slack&colorB=brightgreen)](https://join.slack.com/t/flutterwebrtc/shared_invite/zt-q83o7y1s-FExGLWEvtkPKM8ku_F8cEQ)
 
 WebRTC plugin for Flutter Mobile/Desktop/Web
