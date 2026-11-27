@@ -13,7 +13,7 @@
 | Versions to pin | tags `po/<upstream-version>-<n>`, for example [`po/1.6.3-1`](https://github.com/portaone/flutter-webrtc/tree/po/1.6.3-1) |
 
 ```yaml
-dependency_overrides:
+dependencies:
   flutter_webrtc:
     git:
       url: https://github.com/portaone/flutter-webrtc.git
